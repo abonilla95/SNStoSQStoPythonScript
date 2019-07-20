@@ -1,4 +1,8 @@
-AWSTemplateFormatVersion:"2010-09-09"
+AWSTemplateFormatVersion: "2010-09-09"
+
+#$content = [IO.File]::ReadAllText("FilePath")
+#Test-CFNTemplate -TemplateBody $content -Region us-east-1
+#
 
 Parameters:
 
@@ -17,7 +21,7 @@ Parameters:
     Description: S3 bucket containing Lambda function code
 
   pLambdaFunctionHandler:
-    Default:
+    Default: lambda_handler.lambda_handler
     Type: String
     Description: function_name.method_name used for executing the lambda function
 
@@ -25,6 +29,11 @@ Parameters:
     Default: Lambda_Code
     Type: String
     Description: key containing lambda code zip file
+
+  pLambdaRole:
+    Default: random_role # need to create a role for this
+    Type: String
+    Description: role for lambda function
   
   ###################################################
   ####### End Parameters for Lambda Function ########
@@ -48,13 +57,14 @@ Parameters:
   ###################################################
 
   pSqsQueueName:
-    Default:
+    Default: AlexBonillaSqsQueue
     Type: String
     Description: Name of SQS Queue
 
   ###################################################
   ########## End Parameters for Sqs Queue ###########
   ###################################################
+
 Resources:
   rMyLambdaFunction:
     Type: AWS::Lambda::Function
@@ -68,7 +78,7 @@ Resources:
           Ref: pBucketKeyForCode
       Handler: 
         Ref: pLambdaFunctionHandler
-      Role:
+      Role: 
         Ref: pLambdaRole
       Runtime: python3.7
       Timeout: 900
@@ -90,12 +100,14 @@ Resources:
             Fn::GetAtt:
               - rMyLambdaFunction
               - Arn
-         Protocol: lambda
+          Protocol: 
+            lambda
         - Endpoint: 
             Fn::GetAtt:
               - rMySqsQueue
               - Arn
-          Protocol: sqs
+          Protocol: 
+              sqs
   
   rMySqsQueuPermission:
     Type: AWS::SQS::QueuePolicy
@@ -106,28 +118,22 @@ Resources:
           Effect: Allow
           Principal: sns.amazonaws.com
           Action: sqs:SendMessage
-          Resource: *
+          Resource: "*"
           Condition:
             ArnEquals:
-              aws:SourceArn:
-                Fn::GetAtt:
-                  - rMySnsTopic
-                  - Arn
+                - Ref: rMySnsTopic # returns the topic arn
       Queues: 
-        - Ref: rMySqsQueue
+        - Ref: rMySqsQueue # returns queue url
   
   rMyLambdaPermission:
     Type: AWS::Lambda::Permission
     DependsOn: 
-      Ref: rMyLambdaFunction 
+      - rMyLambdaFunction 
+      - rMySnsTopic
     Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        Fn::GetAtt:
-          - rMyLambdaFunction
-          - Name
+      Action: lambda:InvokeFunction # invokes the given function
+      FunctionName: 
+        Ref: rMyLambdaFunction # returns the name of the function
       Principal: sns.amazonaws.com
-      SourceArn:
-        Fn::GetAtt:
-          - rMySnsTopic
-          - Arn
+      SourceArn: 
+          Ref: rMySnsTopic # returns the topic arn
