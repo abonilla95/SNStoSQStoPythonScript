@@ -2,7 +2,6 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 #$content = [IO.File]::ReadAllText("FilePath")
 #Test-CFNTemplate -TemplateBody $content -Region us-east-1
-#
 
 Parameters:
 
@@ -11,12 +10,12 @@ Parameters:
   ###################################################
 
   pLambdaFunctionName:
-    Default: AlexBonillaLambda
+    Default: AddLambdaNameHere
     Type: String
     Description: Lambda function that gets triggerred by sns topic
 
   pLambdaCodeBucketName:
-    Default: lambdaCode
+    Default: AddS3BucketNameHere
     Type: String
     Description: S3 bucket containing Lambda function code
 
@@ -44,7 +43,7 @@ Parameters:
   ###################################################
 
   pSnsTopicName:
-    Default: AlexBonillaTopic
+    Default: AddSNSTopicNameHere
     Type: String
     Description: Name of SNS topic
   
@@ -57,7 +56,7 @@ Parameters:
   ###################################################
 
   pSqsQueueName:
-    Default: AlexBonillaSqsQueue
+    Default: 
     Type: String
     Description: Name of SQS Queue
 
