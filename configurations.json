@@ -1,0 +1,17 @@
+{
+    "DeploymentParameters":{
+        "AwsRegion": "{add_aws_region_here}",
+        "StackName":"setup-lambda-sns-sqs",
+        "CloudFormationRoleARN": "arn:aws:iam::{add_account_number}:role/{role_for_CloudFormation}",
+        "S3BucketForCloudFormationTemplate": "{add_S3_bucket_where_CloudFormation_template_is_placed}",
+        "S3BucketForLambdaFunction": "{add_S3_bucket_where_Lambda_zip_file_is_placed}",
+        "S3KeyForLambdaFunction" : "lambda_code/lambda_code/lambda_code.zip",
+        "LambdaFunctionName": "invoked-by-sns",
+        "LambdaRole": "arn:aws:iam::{add_account_number}:role/{add_role_for_lambda}",
+        "SnsTopicName": "invoke-lambda",
+        "SqsQueueName": "polled-by-script",
+        "ResourceName": "polled-by-script",
+        "LambdaFunctionHandler": "lambda_handler.lambda_handler",
+        "templateUrl": "{Add_S3_URL_for_yaml_template}"
+    }
+}

@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+#Use this to test if yaml template is valid
+#$content = [IO.File]::ReadAllText("FilePath")
+#Test-CFNTemplate -TemplateBody $content -Region us-east-1
+
+Parameters:
+
+  ###################################################
+  ####### Start Parameters for Lambda Function ######
+  ###################################################
+
+  pLambdaFunctionName:
+    Type: String
+    Description: Lambda function that gets triggerred by sns topic
+
+  pLambdaCodeBucketName:
+    Type: String
+    Description: S3 bucket containing Lambda function code
+
+  pLambdaFunctionHandler:
+    Type: String
+    Description: function_name.method_name used for executing the lambda function
+
+  pBucketKeyForCode:
+    Type: String
+    Description: key containing lambda code zip file
+
+  pLambdaRole:
+    Type: String
+    Description: role for lambda function
+  
+  ###################################################
+  ####### End Parameters for Lambda Function ########
+  ###################################################
+
+  ###################################################
+  ######### Start Parameters for Sns Topic ##########
+  ###################################################
+
+  pSnsTopicName:
+    Type: String
+    Description: Name of SNS topic
+  
+  ###################################################
+  ########## End Parameters for Sns Topic ###########
+  ###################################################
+
+  ###################################################
+  ######### Start Parameters for Sqs Queue ##########
+  ###################################################
+
+  pSqsQueueName:
+    Type: String
+    Description: Name of SQS Queue
+
+  ###################################################
+  ########## End Parameters for Sqs Queue ###########
+  ###################################################
+
+Resources:
+  rMyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: 
+        Ref: pLambdaFunctionName
+      Code:
+        S3Bucket: 
+          Ref: pLambdaCodeBucketName
+        S3Key:
+          Ref: pBucketKeyForCode
+      Handler: 
+        Ref: pLambdaFunctionHandler
+      Role: 
+        Ref: pLambdaRole
+      Runtime: python3.7
+      Timeout: 900
+  
+  rMySqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName:
+        Ref: pSqsQueueName
+
+  rMySnsTopic:
+    Type: AWS::SNS::Topic
+    DependsOn: rMyLambdaFunction
+    Properties:
+      TopicName: 
+        Ref: pSnsTopicName
+      Subscription:
+        - Endpoint:
+            Fn::GetAtt:
+              - rMyLambdaFunction
+              - Arn
+          Protocol: 
+            lambda
+        - Endpoint: 
+            Fn::GetAtt:
+              - rMySqsQueue
+              - Arn
+          Protocol: 
+              sqs
+  
+  rMySqsQueuPermission:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument: '{
+        "Version": "2012-10-17",
+        "Id": "arn:aws:sqs:{aws_region}:{account_number}:{SQS_Queue_Name}/SQSDefaultPolicy",
+        "Statement": [
+          {
+            "Sid": "Sid1563748890569",
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "*"
+            },
+            "Action": "SQS:SendMessage",
+            "Resource": "{SQS_Queue_Arn}",
+            "Condition": {
+              "ArnEquals": {
+                "aws:SourceArn": "arn:aws:sns:{aws_region}:{account_number}{Sns_topic_name}"
+                }
+              }
+            }
+          ]
+        }'
+      Queues: 
+        - Ref: rMySqsQueue # returns queue url
+  
+  rMyLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: 
+      - rMyLambdaFunction 
+      - rMySnsTopic
+    Properties:
+      Action: lambda:InvokeFunction # invokes the given function
+      FunctionName: 
+        Ref: rMyLambdaFunction # returns the name of the function
+      Principal: sns.amazonaws.com
+      SourceArn: 
+          Ref: rMySnsTopic # returns the topic arn
